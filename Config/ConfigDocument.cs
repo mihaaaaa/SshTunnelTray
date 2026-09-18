@@ -17,5 +17,7 @@ public sealed class ConfigDocument
 public sealed class AppSettings
 {
     public string? SshExecutablePath { get; set; }
+    private string language = "ru";
+    public string Language { get => language; set => language = value?.Equals("en", StringComparison.OrdinalIgnoreCase) == true ? "en" : "ru"; }
     [JsonExtensionData] public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
 }

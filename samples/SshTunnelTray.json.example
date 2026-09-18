@@ -23,6 +23,7 @@
     }
   ],
   "settings": {
-    "sshExecutablePath": null
+    "sshExecutablePath": null,
+    "language": "ru"
   }
 }

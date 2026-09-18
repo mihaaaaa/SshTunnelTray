@@ -1,5 +1,7 @@
 # Чек-лист публикации на GitHub
 
+[Русский](PUBLICATION-CHECKLIST.md) | [English](PUBLICATION-CHECKLIST.en.md)
+
 ## До первого коммита
 
 - [ ] В рабочем дереве нет реального `SshTunnelTray.json` среди добавляемых файлов.

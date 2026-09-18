@@ -16,16 +16,16 @@ public sealed class TrayApplicationContext : ApplicationContext
     public TrayApplicationContext(LaunchDirectory launch, ConfigStore store, CommandLineOptions options)
     {
         this.store = store; directory = launch.Path; WindowsFormsSynchronizationContext.AutoInstall = true; uiContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext(); icon = new NotifyIcon { Visible = true, Text = "SshTunnelTray", Icon = TrayIconProvider.Create(TunnelState.Stopped, hasProfile: false, notReady: true) };
-        icon.ContextMenuStrip = new ContextMenuStrip(); icon.ContextMenuStrip.Items.Add("Туннель: нет профиля");
-        icon.ContextMenuStrip.Items.Add("Включить", null, async (_, _) => await StartAsync());
-        icon.ContextMenuStrip.Items.Add("Выключить", null, async (_, _) => await StopAsync());
-        icon.ContextMenuStrip.Items.Add("Настройки", null, (_, _) => ShowSettings(null));
-        icon.ContextMenuStrip.Items.Add("Выйти", null, (_, _) => ExitThread());
+        icon.ContextMenuStrip = new ContextMenuStrip(); icon.ContextMenuStrip.Items.Add(Tr("Туннель: нет профиля"));
+        icon.ContextMenuStrip.Items.Add(Tr("Включить"), null, async (_, _) => await StartAsync());
+        icon.ContextMenuStrip.Items.Add(Tr("Выключить"), null, async (_, _) => await StopAsync());
+        icon.ContextMenuStrip.Items.Add(Tr("Настройки"), null, (_, _) => ShowSettings(null));
+        icon.ContextMenuStrip.Items.Add(Tr("Выйти"), null, (_, _) => ExitThread());
         var loaded = store.Load(); document = loaded.Document ?? new();
         if (options.ProfileName is not null)
         {
             profile = store.FindProfile(document, options.ProfileName);
-            if (profile is null) ShowSettings($"Профиль «{options.ProfileName}» не найден."); else _ = StartAsync();
+            if (profile is null) ShowSettings(ProfileNotFound(options.ProfileName)); else _ = StartAsync();
         }
         else ShowSettings(options.Error);
         UpdateUi(TunnelState.Stopped, null);
@@ -69,9 +69,11 @@ public sealed class TrayApplicationContext : ApplicationContext
             finally { controller = null; ReleaseMutex(); }
         }
     }
-    private void UpdateMenu() { if (icon.ContextMenuStrip is null) return; icon.ContextMenuStrip.Items[0].Text = "Туннель: " + (profile?.Name ?? "нет профиля"); icon.Text = (profile?.Name ?? "SshTunnelTray").Length > 63 ? (profile?.Name ?? "SshTunnelTray")[..63] : profile?.Name ?? "SshTunnelTray"; }
+    private string Tr(string text) => Localization.Text(text, Localization.Normalize(document.Settings.Language));
+    private string ProfileNotFound(string name) => Localization.Normalize(document.Settings.Language) == UiLanguage.En ? $"Profile ‘{name}’ not found." : $"Профиль «{name}» не найден.";
+    private void UpdateMenu() { if (icon.ContextMenuStrip is null) return; icon.ContextMenuStrip.Items[0].Text = Tr("Туннель: ") + (profile?.Name ?? Tr("нет профиля")); icon.ContextMenuStrip.Items[1].Text = Tr("Включить"); icon.ContextMenuStrip.Items[2].Text = Tr("Выключить"); icon.ContextMenuStrip.Items[3].Text = Tr("Настройки"); icon.ContextMenuStrip.Items[4].Text = Tr("Выйти"); icon.Text = (profile?.Name ?? "SshTunnelTray").Length > 63 ? (profile?.Name ?? "SshTunnelTray")[..63] : profile?.Name ?? "SshTunnelTray"; }
     private async Task StartAsync() { await controllerLifecycle.WaitAsync(); try { await StartCoreAsync(); } finally { controllerLifecycle.Release(); } }
-    private async Task StartCoreAsync() { if (!IsProfileReady(profile)) { UpdateUi(TunnelState.Stopped, null); return; } if (profileMutex is null) { var canonical = profile!.Name.Normalize(NormalizationForm.FormC).ToUpperInvariant(); var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))[..24]; profileMutex = new Mutex(false, "Local\\SshTunnelTray-" + key); if (!profileMutex.WaitOne(0)) { profileMutex.Dispose(); profileMutex = null; UpdateUi(TunnelState.Error, "Профиль уже запущен."); return; } } controller ??= new TunnelController(document.Settings.SshExecutablePath, Environment.ProcessPath); controller.StateChanged -= OnStateChanged; controller.StateChanged += OnStateChanged; try { runtimeError = null; await controller.StartAsync(Snapshot(profile!)); } catch (Exception ex) { runtimeError = ex.Message; ReleaseMutex(); UpdateUi(TunnelState.Error, ex.Message); } }
+    private async Task StartCoreAsync() { if (!IsProfileReady(profile)) { UpdateUi(TunnelState.Stopped, null); return; } if (profileMutex is null) { var canonical = profile!.Name.Normalize(NormalizationForm.FormC).ToUpperInvariant(); var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))[..24]; profileMutex = new Mutex(false, "Local\\SshTunnelTray-" + key); if (!profileMutex.WaitOne(0)) { profileMutex.Dispose(); profileMutex = null; UpdateUi(TunnelState.Error, Tr("Профиль уже запущен.")); return; } } controller ??= new TunnelController(document.Settings.SshExecutablePath, Environment.ProcessPath); controller.StateChanged -= OnStateChanged; controller.StateChanged += OnStateChanged; try { runtimeError = null; await controller.StartAsync(Snapshot(profile!)); } catch (Exception ex) { runtimeError = ex.Message; ReleaseMutex(); UpdateUi(TunnelState.Error, ex.Message); } }
     private async Task StopAsync() { await controllerLifecycle.WaitAsync(); try { await StopCoreAsync(); } finally { controllerLifecycle.Release(); } }
     private async Task StopCoreAsync() { if (controller is not null) await controller.StopAsync(); ReleaseMutex(); }
     private void ReleaseMutex() { if (profileMutex is null) return; try { profileMutex.ReleaseMutex(); } catch (ApplicationException) { } profileMutex.Dispose(); profileMutex = null; }

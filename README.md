@@ -1,6 +1,8 @@
 # SshTunnelTray
 
-Небольшая Windows-утилита для управления SSH-туннелями из системного трея.
+[Русский](README.md) | [English](README.en.md)
+
+Небольшая Windows-утилита для управления SSH-туннелями из системного трея. Интерфейс доступен на русском и английском языках.
 
 ![Окно настроек SshTunnelTray](docs/screenshots/settings.png)
 
