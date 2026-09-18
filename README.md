@@ -50,6 +50,8 @@ dotnet publish .\SshTunnelTray.csproj `
   --runtime win-x64 `
   --self-contained false `
   -p:PublishSingleFile=true `
+  -p:DebugSymbols=false `
+  -p:DebugType=None `
   -o .\publish
 ```
 
