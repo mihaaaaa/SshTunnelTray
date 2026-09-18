@@ -11,6 +11,7 @@ public static class SshArgumentBuilder
     public static SshLaunchSpec Build(TunnelProfile profile, string? executablePath = null, string? askPassExecutablePath = null, string? askPassPipeName = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
+        if (profile.AuthMode is not (TunnelAuthMode.KeyFile or TunnelAuthMode.Password)) throw new ArgumentOutOfRangeException(nameof(profile), "Unknown tunnel authentication mode.");
         var args = new List<string>
         {
             "-N", "-T", "-o", "ExitOnForwardFailure=yes",

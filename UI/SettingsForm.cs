@@ -14,7 +14,7 @@ public sealed class SettingsForm : Form
     private readonly TextBox name = new(), host = new(), user = new(), localAddress = new(), remoteHost = new(), keyPath = new(), password = new(), sshPath = new();
     private readonly NumericUpDown sshPort = Number(22), localPort = Number(10022), remotePort = Number(22);
     private readonly RadioButton keyMode = new() { Text = "Файл ключа", AutoSize = true }, passwordMode = new() { Text = "Пароль", AutoSize = true };
-    private readonly CheckBox checkAfterSave = new() { Text = "Проверять туннель после сохранения", AutoSize = true, Checked = true };
+    private readonly CheckBox checkAfterSave = new() { Text = "Запускать туннель после сохранения", AutoSize = true, Checked = true };
     private readonly CheckBox reconnect = new() { Text = "Переподключаться автоматически", AutoSize = true };
     private const string SshDownloadUrl = "https://github.com/PowerShell/Win32-OpenSSH/releases";
     private readonly Label sshStatus = new() { AutoSize = true }; private readonly LinkLabel sshLink = new() { Text = SshDownloadUrl, AutoSize = true, Visible = false, LinkArea = new LinkArea(0, SshDownloadUrl.Length), LinkColor = Color.FromArgb(37, 99, 235) }; private readonly Button copySshLink = new() { Text = "Копировать", AutoSize = true, Visible = false, FlatStyle = FlatStyle.Flat };

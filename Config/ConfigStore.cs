@@ -114,6 +114,7 @@ public sealed class ConfigStore
     public static string[] BuildSshArguments(TunnelProfile p)
     {
         ArgumentNullException.ThrowIfNull(p);
+        if (p.AuthMode is not (TunnelAuthMode.KeyFile or TunnelAuthMode.Password)) throw new ArgumentOutOfRangeException(nameof(p), "Unknown tunnel authentication mode.");
         var args = new List<string>
         {
             "-N", "-T", "-o", "ExitOnForwardFailure=yes",

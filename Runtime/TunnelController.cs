@@ -24,6 +24,7 @@ public sealed class TunnelController : IAsyncDisposable
     private enum DesiredTunnelState { Stopped, Connected }
 
     private readonly object gate = new();
+    private readonly SemaphoreSlim lifecycle = new(1, 1);
     private readonly string? executablePath;
     private readonly string? askPassExecutablePath;
     private Process? process;
@@ -45,37 +46,60 @@ public sealed class TunnelController : IAsyncDisposable
     public async Task StartAsync(TunnelProfile snapshot, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        Task startedTask;
-        lock (gate)
+        await lifecycle.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            ThrowIfDisposed();
-            profile = snapshot;
-            desired = DesiredTunnelState.Connected;
-            runCts?.Cancel();
-            runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var startup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var currentGeneration = ++generation;
-            runTask = RunAsync(snapshot, runCts.Token, currentGeneration, startup);
-            startedTask = startup.Task;
+            Task? previousTask;
+            Process? previousProcess;
+            lock (gate)
+            {
+                ThrowIfDisposed();
+                desired = DesiredTunnelState.Stopped;
+                runCts?.Cancel();
+                previousTask = runTask;
+                previousProcess = process;
+            }
+            await StopProcessAsync(previousProcess, CancellationToken.None).ConfigureAwait(false);
+            if (previousTask is not null) { try { await previousTask.ConfigureAwait(false); } catch (OperationCanceledException) { } }
+
+            Task startedTask;
+            lock (gate)
+            {
+                ThrowIfDisposed();
+                profile = snapshot;
+                desired = DesiredTunnelState.Connected;
+                runCts?.Dispose();
+                runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var startup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var currentGeneration = ++generation;
+                runTask = RunAsync(snapshot, runCts.Token, currentGeneration, startup);
+                startedTask = startup.Task;
+            }
+            await startedTask.ConfigureAwait(false);
         }
-        await startedTask.ConfigureAwait(false);
+        finally { lifecycle.Release(); }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        Task? task;
-        Process? processToStop;
-        lock (gate)
+        await lifecycle.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            if (disposed) return;
-            desired = DesiredTunnelState.Stopped;
-            runCts?.Cancel();
-            task = runTask;
-            processToStop = process;
+            Task? task;
+            Process? processToStop;
+            lock (gate)
+            {
+                if (disposed) return;
+                desired = DesiredTunnelState.Stopped;
+                runCts?.Cancel();
+                task = runTask;
+                processToStop = process;
+            }
+            await StopProcessAsync(processToStop, CancellationToken.None).ConfigureAwait(false);
+            if (task is not null) { try { await task.ConfigureAwait(false); } catch (OperationCanceledException) { } }
+            SetState(TunnelState.Stopped, null);
         }
-        await StopProcessAsync(processToStop, cancellationToken).ConfigureAwait(false);
-        if (task is not null) { try { await task.ConfigureAwait(false); } catch (OperationCanceledException) { } }
-        SetState(TunnelState.Stopped, null);
+        finally { lifecycle.Release(); }
     }
 
     private async Task RunAsync(TunnelProfile p, CancellationToken ct, int myGeneration, TaskCompletionSource startup)
@@ -171,12 +195,11 @@ public sealed class TunnelController : IAsyncDisposable
 
     private async Task StopProcessAsync(Process? expected, CancellationToken ct)
     {
-        Process? p;
+        Process? p = expected;
         lock (gate)
         {
-            if (expected is not null && !ReferenceEquals(process, expected)) return;
-            p = process;
-            process = null;
+            if (expected is null) p = process;
+            if (ReferenceEquals(process, p)) process = null;
         }
         if (p is null) return;
         try { if (!p.HasExited) { p.Kill(entireProcessTree: true); await p.WaitForExitAsync(ct).ConfigureAwait(false); } } catch (InvalidOperationException) { } finally { p.Dispose(); }
@@ -216,5 +239,31 @@ public sealed class TunnelController : IAsyncDisposable
         public TunnelError Error { get; }
     }
     private void ThrowIfDisposed() { if (disposed) throw new ObjectDisposedException(nameof(TunnelController)); }
-    public async ValueTask DisposeAsync() { lock (gate) { if (disposed) return; disposed = true; desired = DesiredTunnelState.Stopped; runCts?.Cancel(); } await StopProcessAsync(CancellationToken.None).ConfigureAwait(false); runCts?.Dispose(); }
+    public async ValueTask DisposeAsync()
+    {
+        await lifecycle.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            Task? task;
+            Process? processToStop;
+            lock (gate)
+            {
+                if (disposed) return;
+                disposed = true;
+                desired = DesiredTunnelState.Stopped;
+                runCts?.Cancel();
+                task = runTask;
+                processToStop = process;
+            }
+            await StopProcessAsync(processToStop, CancellationToken.None).ConfigureAwait(false);
+            if (task is not null) { try { await task.ConfigureAwait(false); } catch (OperationCanceledException) { } }
+            lock (gate)
+            {
+                runCts?.Dispose();
+                runCts = null;
+                runTask = null;
+            }
+        }
+        finally { lifecycle.Release(); }
+    }
 }

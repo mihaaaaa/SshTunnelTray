@@ -30,8 +30,9 @@ public static class ConfigValidator
         if (!names.Add(n)) issues.Add(new(path + ".name", "Duplicate profile name."));
         if (string.IsNullOrWhiteSpace(p.Host) || p.Port is < 1 or > 65535 || string.IsNullOrWhiteSpace(p.User)) issues.Add(new(path, "SSH host, user and port are required."));
         if (p.LocalPort is < 1 or > 65535 || p.RemotePort is < 1 or > 65535 || string.IsNullOrWhiteSpace(p.RemoteHost)) issues.Add(new(path, "Forward endpoint is invalid."));
-        if (p.AuthMode == TunnelAuthMode.KeyFile && string.IsNullOrWhiteSpace(p.KeyPath)) issues.Add(new(path + ".keyPath", "KeyFile authentication requires keyPath."));
-        if (p.AuthMode == TunnelAuthMode.Password && p.Password is null) issues.Add(new(path + ".password", "Password authentication requires encrypted password."));
+        if (p.AuthMode is not (TunnelAuthMode.KeyFile or TunnelAuthMode.Password)) issues.Add(new(path + ".authMode", "Unknown tunnel authentication mode."));
+        else if (p.AuthMode == TunnelAuthMode.KeyFile && string.IsNullOrWhiteSpace(p.KeyPath)) issues.Add(new(path + ".keyPath", "KeyFile authentication requires keyPath."));
+        else if (p.AuthMode == TunnelAuthMode.Password && p.Password is null) issues.Add(new(path + ".password", "Password authentication requires encrypted password."));
         if (p.Extra?.Count > 0) issues.Add(new(path, "Unknown fields: " + string.Join(", ", p.Extra.Keys)));
         if (string.IsNullOrWhiteSpace(p.LocalAddress) || p.ReconnectDelaySeconds < 0 || p.KeepAliveIntervalSeconds < 0 || p.KeepAliveCount < 0 || p.ConnectTimeoutSeconds <= 0) issues.Add(new(path, "Connection options are invalid."));
     }
