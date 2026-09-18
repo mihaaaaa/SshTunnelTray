@@ -1,0 +1,22 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore .\SshTunnelTray.csproj --runtime win-x64
+      - name: Build
+        run: dotnet build .\SshTunnelTray.csproj --configuration Release --runtime win-x64 --no-restore

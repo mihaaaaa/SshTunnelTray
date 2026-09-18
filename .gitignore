@@ -1,0 +1,67 @@
+# Build and IDE output
+**/bin/
+**/obj/
+publish/
+artifacts/
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Runtime data: contains hosts, usernames, local paths and encrypted passwords
+**/SshTunnelTray.json
+**/*-local.json
+**/*.secrets.json
+**/*credentials*.json
+**/*secret*.json
+
+# Generated launchers and diagnostics
+**/*.cmd
+**/*.log
+**/*.dmp
+**/*.dump
+**/*.bak
+**/*.tmp
+
+# Private keys, certificates and key stores
+*.pem
+*.key
+*.ppk
+*.p12
+*.pfx
+*.jks
+*.kdbx
+id_rsa
+id_rsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
+id_dsa
+id_dsa.*
+authorized_keys
+known_hosts
+
+# Environment and local secret files
+.env
+.env.*
+!.env.example
+secrets.*
+credentials.*
+passwords.*
+
+# Generated binaries and symbols
+*.exe
+*.dll
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+
+# Keep the checked-in SDK selector and public screenshot assets
+!global.json
+!docs/
+!docs/screenshots/
+!docs/screenshots/*.png

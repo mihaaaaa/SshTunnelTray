@@ -1,0 +1,28 @@
+{
+  "schema": "ssh-tunnel-tray.config",
+  "version": 1,
+  "tunnels": [
+    {
+      "name": "example",
+      "host": "example.com",
+      "port": 22,
+      "user": "your-user",
+      "authMode": 0,
+      "keyPath": "C:\\Users\\YOUR_NAME\\.ssh\\id_ed25519",
+      "password": null,
+      "localAddress": "127.0.0.1",
+      "localPort": 10022,
+      "remotePort": 22,
+      "remoteHost": "127.0.0.1",
+      "checkAfterSave": true,
+      "reconnectEnabled": true,
+      "reconnectDelaySeconds": 5,
+      "keepAliveIntervalSeconds": 30,
+      "keepAliveCount": 3,
+      "connectTimeoutSeconds": 15
+    }
+  ],
+  "settings": {
+    "sshExecutablePath": null
+  }
+}

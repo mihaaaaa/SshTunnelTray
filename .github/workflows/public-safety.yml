@@ -1,0 +1,17 @@
+name: Public safety
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify public files
+        shell: pwsh
+        run: ./scripts/Verify-Public.ps1 -TrackedOnly

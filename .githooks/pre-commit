@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+if command -v pwsh >/dev/null 2>&1; then
+  exec pwsh -NoProfile -ExecutionPolicy Bypass -File "$(dirname "$0")/../scripts/Verify-Public.ps1" -TrackedOnly
+fi
+if command -v powershell.exe >/dev/null 2>&1; then
+  exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(dirname "$0")/../scripts/Verify-Public.ps1" -TrackedOnly
+fi
+echo 'Требуется pwsh для Verify-Public.ps1' >&2
+exit 1
